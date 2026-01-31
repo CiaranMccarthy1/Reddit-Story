@@ -4,6 +4,7 @@ import unittest
 import shutil
 from pathlib import Path
 import sys
+from unittest.mock import patch
 
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -21,6 +22,10 @@ class TestAssetManager(unittest.TestCase):
         # Instantiate AssetManager pointing to the test root
         cls.manager = AssetManager(cls.test_root)
 
+    def setUp(self):
+        # Reset session ID before each test
+        self.manager.current_session_id = None
+
     @classmethod
     def tearDownClass(cls):
         # Clean up the temporary directory after all tests
@@ -34,24 +39,32 @@ class TestAssetManager(unittest.TestCase):
         self.assertTrue(self.manager.temp_dir.exists())
 
     def test_02_get_output_path(self):
-        video_index = 1
-        path = self.manager.get_output_path(i=video_index)
+        # 1. With Index
+        path_idx = self.manager.get_output_path(i=1)
+        self.assertTrue(path_idx.endswith("video1.mp4"))
         
-        expected_filename = f"video{video_index}.mp4"
-
-        expected_dir = self.manager.output_dir / "finalVideo"
+        # 2. With Session
+        session_id = self.manager.create_session()
+        path_session = self.manager.get_output_path()
+        self.assertIn(session_id, path_session)
+        self.assertTrue(path_session.endswith(".mp4"))
         
-        expected_path = str(expected_dir / expected_filename)
-        
-        self.assertEqual(path, expected_path)
+        # 3. Fallback (No session, no index)
+        self.manager.current_session_id = None
+        path_fallback = self.manager.get_output_path()
+        self.assertIn("video_", path_fallback)
 
     def test_03_save_script_writes_file_to_temp(self):
+        # Verify it writes to session dir if active
+        session_id = self.manager.create_session()
+        
         test_content = "This is a test script content for review."
         filename = "test_script.txt"
         
         saved_path = self.manager.save_script(test_content, filename)
         
-        expected_path = self.manager.temp_dir / filename
+        # Should be in temp/session_id/filename
+        expected_path = self.manager.temp_dir / session_id / filename
         self.assertEqual(saved_path, str(expected_path))
         self.assertTrue(expected_path.exists())
         
@@ -74,7 +87,15 @@ class TestAssetManager(unittest.TestCase):
         with self.assertRaises(FileNotFoundError):
             self.manager.get_background_video()
 
-    def test_06_get_font_path(self):
+    @patch('src.generator.asset_manager.Path.exists')
+    def test_06_get_font_path(self, MockExists):
+        # Case 1: Exists
+        MockExists.return_value = True
+        font = self.manager.get_font_path()
+        self.assertIn("arial.ttf", font.lower())
+
+        # Case 2: Does not exist
+        MockExists.return_value = False
         font = self.manager.get_font_path()
         self.assertEqual(font, "Arial")
 
@@ -85,12 +106,14 @@ class TestAssetManager(unittest.TestCase):
         self.assertTrue(path.endswith(".mp4"))
 
     def test_08_save_audio(self):
-        # Test save_audio method (currently it just returns path, doesn't write bytes locally in the snippet logic provided earlier? 
-        # Wait, the code says: return str(self.temp_dir / filename)
-        # It doesn't write anything? 
-        # Lines 34-35: def save_audio(self, audio_bytes=None, filename="narration.mp3"): return str(self.temp_dir / filename)
-        # So it's just a path helper? 
-        # Yes.
+        # 1. With Session
+        session_id = self.manager.create_session()
         path = self.manager.save_audio(filename="test.mp3")
-        expected = self.manager.temp_dir / "test.mp3"
+        expected = self.manager.temp_dir / session_id / "test.mp3"
         self.assertEqual(path, str(expected))
+        
+        # 2. Without Session
+        self.manager.current_session_id = None
+        path_fallback = self.manager.save_audio(filename="fallback.mp3")
+        expected_fallback = self.manager.temp_dir / "fallback.mp3"
+        self.assertEqual(path_fallback, str(expected_fallback))

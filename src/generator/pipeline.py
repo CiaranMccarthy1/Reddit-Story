@@ -8,6 +8,9 @@ class VideoGenerationPipeline:
 
     def run(self, prompt_file, duration=60):
         print("--- Starting Generation Pipeline ---")
+        
+        session_id = self.assets_manager.create_session()
+        print(f"Session ID: {session_id}")
 
 
         raw_content = self.content_fetcher.generate_script(prompt_file, duration)

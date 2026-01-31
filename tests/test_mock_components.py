@@ -92,10 +92,11 @@ class TestAudioGenerator(unittest.TestCase):
         ]
         self.output_path = "temp/narration.mp3"
 
-    @patch('src.generator.audio_generator.gTTS')
-    def test_01_generate_narration_calls_gtts_correctly(self, MockGtts):
-        # Setup mock TTS instance
-        mock_tts_instance = MockGtts.return_value
+    @patch('src.generator.audio_generator.edge_tts.Communicate')
+    def test_01_generate_narration_calls_edge_tts_correctly(self, MockCommunicate):
+        # Setup mock instance
+        mock_instance = MockCommunicate.return_value
+        mock_instance.save = unittest.mock.AsyncMock()
         
         self.generator.generate_narration(self.script_data, self.output_path)
 
@@ -103,7 +104,8 @@ class TestAudioGenerator(unittest.TestCase):
         expected_text = "First sentence. Second sentence."
 
         # Assertions
-        # 1. Check if gTTS was instantiated with the correct text
-        MockGtts.assert_called_with(text=expected_text, lang='en', slow=False)
+        # 1. Check if Communicate was instantiated with the correct text and voice
+        MockCommunicate.assert_called_with(expected_text, "en-US-ChristopherNeural", rate="-10%")
+        
         # 2. Check if the save method was called with the correct path
-        mock_tts_instance.save.assert_called_once_with(self.output_path)
+        mock_instance.save.assert_called_once_with(self.output_path)

@@ -32,6 +32,7 @@ class TestPipelineIntegration(unittest.TestCase):
         mock_script_data = [{'start': 0, 'text': 'Hi'}]
         self.mock_script_builder.parse_response.return_value = ("Story Text", mock_script_data)
         
+        self.mock_assets_mgr.create_session.return_value = "video_123"
         self.mock_assets_mgr.save_audio.return_value = "audio.mp3"
         self.mock_assets_mgr.get_background_video.return_value = "bg.mp4"
         self.mock_assets_mgr.get_output_path.return_value = "final.mp4"
@@ -55,7 +56,11 @@ class TestPipelineIntegration(unittest.TestCase):
         self.mock_audio_gen.generate_narration.assert_called_with(mock_script_data, "audio.mp3")
         
         # 5. Video Created
+        # 5. Video Created
         self.mock_video_gen.create_video.assert_called_with("bg.mp4", "audio.mp3", mock_script_data, "final.mp4")
+        
+        # 6. Session created
+        self.mock_assets_mgr.create_session.assert_called_once()
 
     def test_pipeline_missing_script_data_halts(self):
         # Simulate parse failure (empty script data)

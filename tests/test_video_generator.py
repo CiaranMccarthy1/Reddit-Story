@@ -24,9 +24,10 @@ class TestVideoGenerator(unittest.TestCase):
 
     @patch('src.generator.video_generator.VideoFileClip')
     @patch('src.generator.video_generator.AudioFileClip')
-    @patch('src.generator.video_generator.TextClip')
+    @patch('src.generator.video_generator.ImageClip')
+    @patch('src.generator.video_generator.create_text_image')
     @patch('src.generator.video_generator.CompositeVideoClip')
-    def test_create_video_flow(self, MockComposite, MockTextClip, MockAudioClip, MockVideoClip):
+    def test_create_video_flow(self, MockComposite, MockCreateTextImage, MockImageClip, MockAudioClip, MockVideoClip):
         # --- Setup Mocks ---
         
         # Audio Mock
@@ -46,10 +47,11 @@ class TestVideoGenerator(unittest.TestCase):
         mock_bg.subclip.return_value = mock_bg
         
         # TextClip Mock
-        mock_text_clip_instance = MockTextClip.return_value
+        mock_text_clip_instance = MockImageClip.return_value
         mock_text_clip_instance.set_position.return_value = mock_text_clip_instance
         mock_text_clip_instance.set_start.return_value = mock_text_clip_instance
         mock_text_clip_instance.set_end.return_value = mock_text_clip_instance
+        mock_text_clip_instance.set_duration.return_value = mock_text_clip_instance
 
         # Composite Video Mock
         mock_final_video = MockComposite.return_value
@@ -80,8 +82,11 @@ class TestVideoGenerator(unittest.TestCase):
         mock_bg.set_audio.assert_called_with(mock_audio)
         
         # 3. TextClips created?
-        # We fail if TextClip wasn't called at least once per script item
-        self.assertTrue(MockTextClip.call_count >= len(self.mock_script_data))
+        # Check custom renderer called
+        # With dynamic captions (larger chunks), we expect at least as many clips as script items (if 1 chunk per line min)
+        # But actually, if we have chunks, we have >= 1 per line.
+        self.assertTrue(MockCreateTextImage.call_count >= len(self.mock_script_data))
+        self.assertTrue(MockImageClip.call_count >= len(self.mock_script_data))
         
         # 4. Composite created?
         MockComposite.assert_called_once()
@@ -96,9 +101,10 @@ class TestVideoGenerator(unittest.TestCase):
 
     @patch('src.generator.video_generator.VideoFileClip')
     @patch('src.generator.video_generator.AudioFileClip')
-    @patch('src.generator.video_generator.TextClip')
+    @patch('src.generator.video_generator.ImageClip')
+    @patch('src.generator.video_generator.create_text_image')
     @patch('src.generator.video_generator.CompositeVideoClip')
-    def test_create_video_no_loop(self, MockComposite, MockTextClip, MockAudioClip, MockVideoClip):
+    def test_create_video_no_loop(self, MockComposite, MockCreateTextImage, MockImageClip, MockAudioClip, MockVideoClip):
         # Case where BG is longer than audio
         mock_audio = MockAudioClip.return_value
         mock_audio.duration = 5
