@@ -1,0 +1,42 @@
+﻿PROMPT:
+
+Create a unique, original Reddit-style story in the tone of r/AmITheAsshole.
+The story should be engaging, emotional, and written in a vivid
+first-person perspective.
+
+After writing the story, convert it into a timestamped narration script compatible with MoviePy.
+Follow these formatting rules:
+
+STORY REQUIREMENTS
+
+Completely original
+
+400–900 words
+
+Emotional hook in first 2 sentences
+
+Clear beginning, conflict, climax, and resolution or cliffhanger
+
+Style examples: Confessional, Suspense, Humorous, Social dilemma, Paranormal
+
+TIMESTAMP FORMAT FOR MOVIEPY
+
+Use HH:MM:SS format
+
+Timestamps increase sequentially
+
+Each line represents 3–7 seconds of narration
+Example:
+00:00:00: "First line..."
+00:00:05: "Second line..."
+00:00:10: "Third line..."
+
+FINAL OUTPUT FORMAT
+Your output MUST contain exactly two sections:
+
+SECTION 1: STORY (plain text)
+SECTION 2: TIMESTAMPED SCRIPT (MoviePy-compatible)
+
+No explanations. No code blocks. No markdown.
+
+Generate the story and script now.

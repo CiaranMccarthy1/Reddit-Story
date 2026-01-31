@@ -1,0 +1,150 @@
+﻿================================================================================
+                    REDDIT VIDEO GENERATOR - FILE EXPLANATIONS
+================================================================================
+
+This document explains the purpose and functionality of every file in the
+Reddit Video Generator project.
+
+================================================================================
+                              PROJECT ROOT FILES
+================================================================================
+
+main.py
+-------
+PURPOSE: Simple entry point for running the application
+WHAT IT DOES:
+  - Adds project root to Python path so imports work
+  - Imports the main() function from src.cli
+  - Runs the CLI when executed with: python main.py
+DEPENDENCIES: src.cli
+RUN WITH: python main.py [prompt_file]
+
+requirements.txt
+----------------
+PURPOSE: List all Python package dependencies
+WHAT IT CONTAINS:
+  - google-generativeai - For Gemini AI API access
+  - moviepy - For video editing and composition
+  - edge-tts - For free text-to-speech generation
+  - gTTS - Google Text-to-Speech (alternative/backup)
+  - python-dotenv - For loading .env file
+USAGE: pip install -r requirements.txt
+
+
+.env.template
+-------------
+PURPOSE: Template for environment variables
+WHAT IT CONTAINS:
+  - GEMINI_API_KEY placeholder (where you put your real API key)
+HOW TO USE:
+  1. Copy this file: cp .env.template .env
+  2. Edit .env and add your real API key
+
+
+README.md
+---------
+PURPOSE: Main project documentation and user guide
+WHAT IT CONTAINS:
+  - Project overview and feature list
+  - Usage instructions
+
+
+================================================================================
+                           SRC PACKAGE FILES (src/)
+================================================================================
+
+src/cli.py
+----------
+PURPOSE: Command-line interface for user interaction
+WHAT IT DOES:
+  - Parses command-line arguments using argparse
+  - Initializes all pipeline components
+  - Orchestrates the video generation process by running the pipeline
+ENTRY POINT: main() function
+DEPENDENCIES: argparse, sys, VideoGenerationPipeline, AssetManager, etc.
+RUN WITH: python main.py [prompt_file]
+EXAMPLE: python main.py Prompts/AITA.txt
+
+
+================================================================================
+                      GENERATOR PACKAGE FILES (src/generator/)
+================================================================================
+
+src/generator/content_fetcher.py
+---------------------------------
+PURPOSE: Generate Reddit-style stories using AI (Gemini)
+WHAT IT DOES:
+  - Connects to Google Gemini API
+  - Reads prompts from file
+  - Generates story and timestamped script
+KEY CLASS: ContentFetcher
+API KEY REQUIRED: GEMINI_API_KEY environment variable
+
+
+src/generator/script_builder.py
+--------------------------------
+PURPOSE: Parse and structure the AI response
+WHAT IT DOES:
+  - Splits response into Story and Script sections
+  - Parses timestamps and text
+KEY CLASS: ScriptBuilder
+
+
+src/generator/audio_generator.py
+---------------------------------
+PURPOSE: Convert text to speech
+WHAT IT DOES:
+  - Uses gTTS (or edge-tts) to generate audio from script
+KEY CLASS: AudioGenerator
+
+
+src/generator/video_generator.py
+----------------------------------
+PURPOSE: Assemble final video
+WHAT IT DOES:
+  - Composites background video, audio, and subtitles
+  - Outputs final MP4 file
+KEY CLASS: VideoGenerator
+
+
+src/generator/asset_manager.py
+--------------------------------
+PURPOSE: Manage paths and assets
+WHAT IT DOES:
+  - Handles directory structures (assets, output, temp)
+  - Manages background videos and output filenames
+  - Generates timestamp-based filenames for uniqueness
+KEY CLASS: AssetManager
+
+
+src/generator/pipeline.py
+--------------------------
+PURPOSE: High-level orchestrator
+WHAT IT DOES:
+  - Connects all components together
+  - Runs the sequence: Fetch -> Build Script -> Gen Audio -> Get BG -> Gen Video
+KEY CLASS: VideoGenerationPipeline
+
+
+================================================================================
+                            TEST FILES (tests/)
+================================================================================
+
+tests/test_mock_components.py
+-----------------------------
+PURPOSE: Unit tests for components using mocks
+WHAT IT TESTS:
+  - ContentFetcher API logic (mocked)
+  - AudioGenerator logic
+  - Ensures components interact correctly
+
+
+================================================================================
+                               DIRECTORY STRUCTURE
+================================================================================
+
+assets/       - Background videos and other media
+output/       - Generated video files (ignored by git)
+Prompts/      - Text files containing prompts for different story types
+temp/         - Temporary files (audio, intermediate scripts)
+tests/        - Unit tests

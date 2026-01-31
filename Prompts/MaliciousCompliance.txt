@@ -1,0 +1,41 @@
+﻿PROMPT  — MALICIOUS COMPLIANCE
+
+Create a unique, original Reddit-style story in the tone of r/MaliciousCompliance.
+The story should be clever, satisfying, and written in a vivid first-person perspective.
+
+After writing the story, convert it into a timestamped narration script compatible with MoviePy.
+Follow these formatting rules:
+
+STORY REQUIREMENTS
+
+Completely original
+
+400–900 words
+
+Emotional hook in the first 2 sentences
+
+Clear setup, unfair rule or demand, malicious compliance act, and satisfying payoff
+
+Style examples: Workplace revenge, school drama, petty authority figures, policy loopholes
+
+TIMESTAMP FORMAT FOR MOVIEPY
+
+Use HH:MM:SS format
+
+Timestamps increase sequentially
+
+Each line represents 3–7 seconds of narration
+Example:
+00:00:00: "First line..."
+00:00:05: "Second line..."
+00:00:10: "Third line..."
+
+FINAL OUTPUT FORMAT
+Your output MUST contain exactly two sections:
+
+SECTION 1: STORY (plain text)
+SECTION 2: TIMESTAMPED SCRIPT (MoviePy-compatible)
+
+No explanations. No code blocks. No markdown.
+
+Generate the story and script now.

@@ -1,0 +1,44 @@
+﻿import re
+
+class ScriptBuilder:
+    def __init__(self):
+        pass
+
+    def parse_response(self, raw_text):
+        """
+        Splits the raw AI response into the Story text and the Timestamped lines.
+        """
+        print("Parsing script...")
+        
+     
+        sections = raw_text.split("SECTION 2: TIMESTAMPED SCRIPT")
+        
+        if len(sections) < 2:
+   
+            story_text = sections[0].replace("SECTION 1: STORY", "").strip()
+            return story_text, []
+
+        story_text = sections[0].replace("SECTION 1: STORY", "").strip()
+        script_block = sections[1].strip()
+
+        parsed_script = []
+        lines = script_block.split('\n')
+        
+
+        pattern = r'^\s*(\d{2}):(\d{2}):(\d{2}):\s*\"(.*?)\"$'
+
+        for line in lines:
+        
+            match = re.search(pattern, line)
+            
+            if match:
+          
+                h, m, s = map(int, match.groups()[:3])
+                total_seconds = h * 3600 + m * 60 + s
+                
+
+                text_content = match.group(4).strip()
+                
+                parsed_script.append({"start": total_seconds, "text": text_content})
+
+        return story_text, parsed_script
