@@ -419,3 +419,9 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Project specific files
+outputFile/*
+temp/*
+assets/*
+coverage.txt
