@@ -79,8 +79,8 @@ class VideoGenerator:
                 text_img = create_text_image(
                     chunk, 
                     font_path, 
-                    font_size=80, # Increased font size for single words
-                    max_width=bg_clip.w * 0.9
+                    font_size=30, # Increased font size for single words
+                    max_width=bg_clip.w * 0.3
                 )
                 
                 txt_clip = (ImageClip(text_img)
