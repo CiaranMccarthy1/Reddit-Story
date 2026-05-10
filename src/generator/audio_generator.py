@@ -1,5 +1,8 @@
 import asyncio
 import edge_tts
+import tempfile
+import os
+from moviepy.editor import AudioFileClip, concatenate_audioclips
 
 class AudioGenerator:
     def __init__(self):
@@ -8,21 +11,42 @@ class AudioGenerator:
 
     def generate_narration(self, script_data, output_path):
         """
-        Combines all script lines into one audio block or generates per line.
-        For simplicity, we will combine the text and generate one audio file.
+        Generates audio line by line to calculate precise timestamps, 
+        fixing desync issues, and concatenates them into one audio file.
         """
-        print("Generating audio (Natural Voice)...")
+        print("Generating audio (Natural Voice) and syncing timestamps...")
         
-        full_text = " ".join([item['text'] for item in script_data])
-        
-        print(f"Audio Input Text Length: {len(full_text)} characters")
-        if len(full_text) < 100:
-             print(f"WARNING: Audio text is very short: '{full_text}'")
+        async def _generate_line(text, path):
+            communicate = edge_tts.Communicate(text, self.voice, rate=self.rate)
+            await communicate.save(path)
 
-        async def _generate():
-            communicate = edge_tts.Communicate(full_text, self.voice, rate=self.rate)
-            await communicate.save(output_path)
+        audio_clips = []
+        current_start_time = 0.0
 
-        asyncio.run(_generate())
-        
+        with tempfile.TemporaryDirectory() as temp_dir:
+            for i, item in enumerate(script_data):
+                text = item['text']
+                if not text.strip():
+                    continue
+
+                line_path = os.path.join(temp_dir, f"line_{i}.mp3")
+                asyncio.run(_generate_line(text, line_path))
+
+                clip = AudioFileClip(line_path)
+                audio_clips.append(clip)
+
+                # Overwrite hallucinated timestamp with exact accumulated duration
+                item['start'] = current_start_time
+                current_start_time += clip.duration
+
+            if audio_clips:
+                final_audio = concatenate_audioclips(audio_clips)
+                final_audio.write_audiofile(output_path, logger=None)
+                
+                for clip in audio_clips:
+                    clip.close()
+                final_audio.close()
+            else:
+                print("WARNING: No valid text to generate audio.")
+
         return output_path

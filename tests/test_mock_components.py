@@ -1,4 +1,4 @@
-﻿
+
 
 import unittest
 import sys
@@ -20,13 +20,12 @@ MOCK_GEMINI_RESPONSE.text = "SECTION 1: STORY\nMocked story.\nSECTION 2: TIMESTA
 class TestContentFetcher(unittest.TestCase):
     
     @patch('src.generator.content_fetcher.os.getenv', return_value='TEST_API_KEY')
-    @patch('src.generator.content_fetcher.genai.configure')
-    @patch('src.generator.content_fetcher.genai.GenerativeModel')
+    @patch('src.generator.content_fetcher.genai.Client')
     @patch('builtins.open', new_callable=unittest.mock.mock_open, read_data="Initial prompt content")
-    def test_01_generate_script_success(self, MockOpen, MockGenerativeModel, MockConfigure, MockGetenv):
+    def test_01_generate_script_success(self, MockOpen, MockClient, MockGetenv):
     
-        mock_model_instance = MockGenerativeModel.return_value
-        mock_model_instance.generate_content.return_value = MOCK_GEMINI_RESPONSE
+        mock_client_instance = MockClient.return_value
+        mock_client_instance.models.generate_content.return_value = MOCK_GEMINI_RESPONSE
     
         fetcher = ContentFetcher()
     
@@ -37,12 +36,20 @@ class TestContentFetcher(unittest.TestCase):
         MockOpen.assert_called_with(MOCK_FILE_PATH, 'r') 
 
         # Assertions
-        MockConfigure.assert_called_once_with(api_key='TEST_API_KEY')
+        MockClient.assert_called_once_with(api_key='TEST_API_KEY')
         
         # Verify generate_content called with prompt containing duration
-        call_args = mock_model_instance.generate_content.call_args
+        call_args = mock_client_instance.models.generate_content.call_args
         self.assertIsNotNone(call_args, "generate_content should be called")
-        prompt_text = call_args[0][0]
+        prompt_text = call_args.kwargs.get('contents') if call_args.kwargs else call_args[1].get('contents', call_args[0][0] if not call_args.kwargs and call_args[0] else call_args.kwargs.get('contents'))
+        if not prompt_text and call_args.kwargs and 'contents' in call_args.kwargs: prompt_text = call_args.kwargs['contents']
+        elif not prompt_text and call_args[1] and 'contents' in call_args[1]: prompt_text = call_args[1]['contents']
+        elif not prompt_text and len(call_args[0]) > 0: prompt_text = call_args[0][0] # Fallback just in case
+        elif not prompt_text and call_args.kwargs: prompt_text = call_args.kwargs.get('contents', "")
+
+        # A cleaner way:
+        prompt_text = call_args.kwargs.get('contents') if call_args.kwargs and 'contents' in call_args.kwargs else call_args[0][1] if len(call_args[0]) > 1 else call_args.kwargs.get('contents') if call_args.kwargs else call_args[1].get('contents') if call_args[1] else call_args[0][0] if len(call_args[0])>0 else ""
+
         self.assertIn("45 seconds long", prompt_text)
         
         self.assertIn("SECTION 1:", result)
@@ -59,11 +66,9 @@ class TestContentFetcher(unittest.TestCase):
         # However, _get_prompt is internal. We can access it via generate_script.
         # But generate_script calls _get_prompt.
         
-        fetcher = ContentFetcher() # Needs API key mock setup which is in class decorator? No, it's not. 
         # We need to mock env for init to pass
         with patch('src.generator.content_fetcher.os.getenv', return_value='KEY'), \
-             patch('src.generator.content_fetcher.genai.configure'), \
-             patch('src.generator.content_fetcher.genai.GenerativeModel'):
+             patch('src.generator.content_fetcher.genai.Client'):
              
              fetcher = ContentFetcher()
              
@@ -72,8 +77,7 @@ class TestContentFetcher(unittest.TestCase):
 
     def test_04_get_prompt_io_error(self):
         with patch('src.generator.content_fetcher.os.getenv', return_value='KEY'), \
-             patch('src.generator.content_fetcher.genai.configure'), \
-             patch('src.generator.content_fetcher.genai.GenerativeModel'), \
+             patch('src.generator.content_fetcher.genai.Client'), \
              patch('builtins.open', side_effect=IOError("Disk error")):
              
              fetcher = ContentFetcher()
@@ -92,20 +96,34 @@ class TestAudioGenerator(unittest.TestCase):
         ]
         self.output_path = "temp/narration.mp3"
 
+    @patch('src.generator.audio_generator.concatenate_audioclips')
+    @patch('src.generator.audio_generator.AudioFileClip')
     @patch('src.generator.audio_generator.edge_tts.Communicate')
-    def test_01_generate_narration_calls_edge_tts_correctly(self, MockCommunicate):
-        # Setup mock instance
+    def test_01_generate_narration_calls_edge_tts_correctly(self, MockCommunicate, MockAudioFileClip, MockConcat):
+        # Setup mock communicate
         mock_instance = MockCommunicate.return_value
         mock_instance.save = unittest.mock.AsyncMock()
+
+        # Setup mock audio clip
+        mock_clip = MagicMock()
+        mock_clip.duration = 2.0
+        MockAudioFileClip.return_value = mock_clip
+
+        # Setup mock concat
+        mock_final_audio = MagicMock()
+        MockConcat.return_value = mock_final_audio
         
         self.generator.generate_narration(self.script_data, self.output_path)
 
-        # Expected full text: concatenated strings
-        expected_text = "First sentence. Second sentence."
-
         # Assertions
-        # 1. Check if Communicate was instantiated with the correct text and voice
-        MockCommunicate.assert_called_with(expected_text, "en-US-ChristopherNeural", rate="-10%")
+        # Check if Communicate was instantiated for each line
+        self.assertEqual(MockCommunicate.call_count, 2)
+        MockCommunicate.assert_any_call("First sentence.", "en-US-ChristopherNeural", rate="-10%")
+        MockCommunicate.assert_any_call("Second sentence.", "en-US-ChristopherNeural", rate="-10%")
         
-        # 2. Check if the save method was called with the correct path
-        mock_instance.save.assert_called_once_with(self.output_path)
+        # Check if final audio was saved
+        mock_final_audio.write_audiofile.assert_called_once_with(self.output_path, logger=None)
+
+        # Verify timestamps were updated correctly
+        self.assertEqual(self.script_data[0]['start'], 0.0)
+        self.assertEqual(self.script_data[1]['start'], 2.0)

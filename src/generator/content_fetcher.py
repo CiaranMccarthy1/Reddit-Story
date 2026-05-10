@@ -1,6 +1,6 @@
-﻿import os
+import os
 from dotenv import load_dotenv
-import google.generativeai as genai
+from google import genai
 
 load_dotenv()
 
@@ -10,8 +10,7 @@ class ContentFetcher:
         if not self.api_key:
             raise ValueError("GEMINI_API_KEY not found in environment variables.")
 
-        genai.configure(api_key=self.api_key)
-        self.model = genai.GenerativeModel("gemini-2.5-flash")
+        self.client = genai.Client(api_key=self.api_key)
 
     def _get_prompt(self, filePath):
         try:
@@ -34,7 +33,10 @@ class ContentFetcher:
         
         print(f"Fetching story from Gemini (Target Duration: {duration}s)...")
 
-        response = self.model.generate_content(final_prompt)
+        response = self.client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=final_prompt
+        )
 
 
         return response.text.strip()
