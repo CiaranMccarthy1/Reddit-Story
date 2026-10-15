@@ -1,0 +1,19 @@
+# Copy this file to config.toml and adjust to taste.
+# API keys are NOT stored here — only the env var name that holds each key.
+# Put the actual keys in your .env file (see .env.template).
+
+[provider]
+name = "gemini"        # gemini | openai | openrouter
+# model = "..."        # optional; overrides the provider default below
+
+[gemini]
+model = "gemini-2.5-flash"
+api_key_env = "GEMINI_API_KEY"
+
+[openai]
+model = "gpt-4o-mini"
+api_key_env = "OPENAI_API_KEY"
+
+[openrouter]
+model = "openai/gpt-4o-mini"
+api_key_env = "OPENROUTER_API_KEY"

@@ -4,17 +4,20 @@ A fully automated pipeline to generate short-form video content from text prompt
 
 ## Features
 
-- **Content Generation**: Uses Google Gemini API to write engaging scripts.
-- **Narration**: Generates voiceovers using `edge-tts` or `gTTS`.
+- **Content Generation**: Pluggable AI providers — Google Gemini (default), OpenAI, or OpenRouter — selected via `config.toml` or CLI flags.
+- **Narration**: Generates voiceovers using `edge-tts`.
 - **Video Composition**: Automatically edits background video, adds subtitles, and syncs audio using `moviepy`.
 - **CLI Interface**: Easy-to-use command-line interface.
-- **Robustness**: 100% test coverage ensuring reliability.
+- **Robustness**: Retry logic for transient API errors and a comprehensive test suite.
 
 ## Prerequisites
 
-- Python 3.9+
-- Google Gemini API Key (Get one from [Google AI Studio](https://aistudio.google.com/))
-- `ffmpeg` (Required by `moviepy` and `pydub`)
+- Python 3.9+ (3.11+ recommended; `tomli` backports TOML support below 3.11)
+- An API key for at least one provider:
+  - [Google AI Studio](https://aistudio.google.com/) (Gemini, default)
+  - [OpenAI](https://platform.openai.com/)
+  - [OpenRouter](https://openrouter.ai/)
+- `ffmpeg` (Required by `moviepy`)
 
 ## Installation
 
@@ -34,12 +37,21 @@ A fully automated pipeline to generate short-form video content from text prompt
       ```bash
       cp .env.template .env
       ```
-    - Open `.env` and paste your API key:
+    - Paste the API key(s) for the provider(s) you plan to use:
       ```
       GEMINI_API_KEY=your_actual_api_key_here
+      OPENAI_API_KEY=your_actual_api_key_here
+      OPENROUTER_API_KEY=your_actual_api_key_here
       ```
 
-4.  **Prepare Assets**:
+4.  **(Optional) Configure the default provider**:
+    - Copy the template and edit:
+      ```bash
+      cp config.template.toml config.toml
+      ```
+    - Choose the provider, model, and the env var name that holds its key. Defaults: `gemini` / `gemini-2.5-flash`.
+
+5.  **Prepare Assets**:
     - Place background videos (MP4) in `assets/`.
     - (Optional) Verify fonts are available on your system (default uses "Arial").
 
@@ -56,12 +68,23 @@ You can also specify the target duration in seconds (default is 60s):
 python main.py Prompts/AITA.txt --duration 90
 ```
 
+Override the provider and/or model from `config.toml` on the command line:
+```bash
+python main.py Prompts/AITA.txt --provider openrouter --model anthropic/claude-sonnet-4
+python main.py Prompts/AITA.txt --provider openai --model gpt-4o
+```
+
+Use a custom config file:
+```bash
+python main.py Prompts/AITA.txt --config my-config.toml
+```
+
 ### Output
 Generated videos will be saved in `outputFile/finalVideo/` with a timestamped filename (e.g., `video_20231027_123456.mp4`).
 
 ## Testing
 
-The project includes a comprehensive test suite with 100% code coverage.
+The project includes a comprehensive test suite.
 
 Run tests:
 ```bash
@@ -72,10 +95,12 @@ pytest
 
 - `src/cli.py`: Main entry point and CLI logic.
 - `src/generator/`: Core components.
-    - `content_fetcher.py`: AI text generation.
+    - `providers/`: AI provider implementations (Gemini, OpenAI, OpenRouter) and factory.
+    - `config.py`: TOML + environment configuration loading.
     - `script_builder.py`: Parsing and timestamping scripts.
     - `audio_generator.py`: TTS generation.
     - `video_generator.py`: Video editing and composition.
+    - `text_renderer.py`: Caption image rendering.
     - `asset_manager.py`: File path management.
     - `pipeline.py`: Orchestrates the entire flow.
 - `tests/`: Unit and integration tests.
